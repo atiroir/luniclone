@@ -1,0 +1,282 @@
+{
+  "exportedAt": "2026-08-04T12:00:00.000Z",
+  "entities": [
+    {
+      "name": "Le bar",
+      "category": "lieu"
+    },
+    {
+      "name": "Mélisande",
+      "category": "hero"
+    },
+    {
+      "name": "Raphael",
+      "category": "hero"
+    },
+    {
+      "name": "donald duck.",
+      "category": "figurant"
+    },
+    {
+      "name": "skatepark.",
+      "category": "lieu"
+    },
+    {
+      "name": "skate",
+      "category": "objet"
+    },
+    {
+      "name": "croquette",
+      "category": "secondaire"
+    },
+    {
+      "name": "Caramel (chat)",
+      "category": "secondaire"
+    },
+    {
+      "name": "Jean-Bernard",
+      "category": "figurant"
+    },
+    {
+      "name": "Poilou",
+      "category": "lieu"
+    },
+    {
+      "name": "Cinéma",
+      "category": "lieu"
+    },
+    {
+      "name": "picsou",
+      "category": "figurant"
+    },
+    {
+      "name": "maison des chats",
+      "category": "lieu"
+    },
+    {
+      "name": "Bono",
+      "category": "secondaire"
+    },
+    {
+      "name": "Matelo",
+      "category": "hero"
+    },
+    {
+      "name": "Restaurant de la mer",
+      "category": "lieu"
+    },
+    {
+      "name": "Une pelle",
+      "category": "objet"
+    },
+    {
+      "name": "Omar",
+      "category": "figurant"
+    },
+    {
+      "name": "Bourlinguette",
+      "category": "figurant"
+    },
+    {
+      "name": "La crique de Cécoulos",
+      "category": "lieu"
+    },
+    {
+      "name": "La plage de Pigeonnos",
+      "category": "lieu"
+    },
+    {
+      "name": "Papa",
+      "category": "secondaire"
+    },
+    {
+      "name": "La DeLorean volante",
+      "category": "objet"
+    },
+    {
+      "name": "La guitare de Papa",
+      "category": "objet"
+    }
+  ],
+  "chest": [
+    "mélisande",
+    "matelo",
+    "papa",
+    "jean-bernard",
+    "omar",
+    "poilou",
+    "restaurant de la mer",
+    "skate",
+    "une pelle"
+  ],
+  "blocks": {
+    "b1786100000004-test04": {
+      "id": "b1786100000004-test04",
+      "type": "recit",
+      "title": "Mélisande · skate · Poilou",
+      "text": "Mélisande grimpe la route qui mène à Poilou, son skate sous le bras — inutile sur les pavés, mais elle ne part jamais sans lui. Sur la place, un géant moustachu fixe un sapin immense. « Ma médaille est coincée tout en haut », soupire Jean-Bernard. « Depuis onze ans. » Mélisande pose son skate contre le tronc, grimpe dessus pour gagner quelques centimètres, puis s'accroche à la première branche. Elle monte, lente et précise, jusqu'à cette petite médaille dorée oubliée dans les feuilles. En redescendant, elle la tend à Jean-Bernard. « Vous avez gagné, alors. » Il la regarde, presque effrayé. « Ça veut dire... la moustache ? » « Ça veut dire ce que vous voulez », dit Mélisande en remontant sur son skate.",
+      "next": null
+    },
+    "b1786100000005-test05": {
+      "id": "b1786100000005-test05",
+      "type": "recit",
+      "title": "Mélisande · skate · Restaurant",
+      "text": "Au Restaurant de la mer, ça sent le brûlé. Mélisande pousse la porte, son skate roulant derrière elle. Un cuisinier, rouge et affolé, jongle avec des casseroles. « Les noix ! Je n'arrive jamais à les casser à temps ! » Mélisande pose une noix sur le comptoir en marbre, prend son skate par les roues, et frappe un coup sec avec la planche. La coque éclate net. « Encore ! » crie Omar. Elle recommence, dix fois, vingt fois, jusqu'à remplir un bol entier. Sur la terrasse, quelqu'un gratte une guitare un peu faux — elle reconnaît Papa, qui lui fait un clin d'œil sans s'arrêter de jouer. Ce soir-là, aucun client n'attend plus de dix minutes.",
+      "next": null
+    },
+    "b1786100000003-test03": {
+      "id": "b1786100000003-test03",
+      "type": "carrefour",
+      "title": "Où va Mélisande (avec le skate) ?",
+      "question": "Où est-ce que ça se passe ?",
+      "options": [
+        {
+          "targetId": "b1786100000004-test04",
+          "label": "Le village de Poilou"
+        },
+        {
+          "targetId": "b1786100000005-test05",
+          "label": "Le restaurant de la mer"
+        }
+      ]
+    },
+    "b1786100000007-test07": {
+      "id": "b1786100000007-test07",
+      "type": "recit",
+      "title": "Mélisande · pelle · Poilou",
+      "text": "Mélisande arrive à Poilou, une pelle sur l'épaule — elle pensait creuser des trous à la plage, pas grimper une montagne. Sur la place, Jean-Bernard fixe un vieux puits muré. « La médaille est tombée là-dedans, il y a onze ans. Personne n'a pu la récupérer. » Mélisande observe les pierres descellées. Avec sa pelle, elle dégage la terre tassée, pierre après pierre, jusqu'à élargir un passage. Elle se glisse dedans, sa lampe torche entre les dents, et remonte quelques minutes plus tard, couverte de poussière, la médaille brillante dans la main. Jean-Bernard n'en revient pas. « Alors j'ai vraiment gagné ? » « On dirait bien », dit Mélisande en époussetant sa pelle. Décidément, une pelle, ça sert à tout.",
+      "next": null
+    },
+    "b1786100000008-test08": {
+      "id": "b1786100000008-test08",
+      "type": "recit",
+      "title": "Mélisande · pelle · Restaurant",
+      "text": "Le Restaurant de la mer est en pleine panique. Mélisande entre, sa pelle encore couverte de sable. Omar, le cuisinier, se tient devant un tas de noix impossibles à ouvrir à mains nues. « Je perds toute ma soirée là-dessus ! » Mélisande pose une noix sur le comptoir en marbre, retourne sa pelle, et tape avec le plat du fer. Un coup, deux coups : la coque cède. Elle recommence, méthodique, jusqu'à remplir un saladier entier. Les clients, étonnés, applaudissent presque en silence. Omar la regarde, les yeux brillants. « Personne ne m'avait jamais aidé comme ça. » « Une pelle, ça sert à tout », répond Mélisande, avant de repartir vers la plage, la nuit tombée.",
+      "next": null
+    },
+    "b1786100000006-test06": {
+      "id": "b1786100000006-test06",
+      "type": "carrefour",
+      "title": "Où va Mélisande (avec la pelle) ?",
+      "question": "Où est-ce que ça se passe ?",
+      "options": [
+        {
+          "targetId": "b1786100000007-test07",
+          "label": "Le village de Poilou"
+        },
+        {
+          "targetId": "b1786100000008-test08",
+          "label": "Le restaurant de la mer"
+        }
+      ]
+    },
+    "b1786100000002-test02": {
+      "id": "b1786100000002-test02",
+      "type": "carrefour",
+      "title": "Quel objet Mélisande emporte-t-il/elle ?",
+      "question": "Quel objet on emporte ?",
+      "options": [
+        {
+          "targetId": "b1786100000003-test03",
+          "label": "Le skate"
+        },
+        {
+          "targetId": "b1786100000006-test06",
+          "label": "Une pelle"
+        }
+      ]
+    },
+    "b1786100000011-test11": {
+      "id": "b1786100000011-test11",
+      "type": "recit",
+      "title": "Matelo · skate · Poilou",
+      "text": "Matelo débarque à Poilou en skate, dévalant la route dans un bruit de roulettes sur les pavés. Sur la place, Jean-Bernard désigne un grand sapin. « Ma médaille est tout en haut. Onze ans que personne ne peut la décrocher. » Matelo recule, prend son élan, et lance son skate contre le tronc comme un tremplin. Il rebondit, attrape une branche basse, et grimpe le reste à la force des bras en criant « EN AVANT ! » Là-haut, la médaille brille entre deux feuilles. Il la fait glisser jusqu'en bas d'un coup de poignet, exactement comme un ricochet. Jean-Bernard l'attrape au vol. « J'ai gagné ! » « Depuis onze ans, oui », dit Matelo, déjà reparti sur son skate.",
+      "next": null
+    },
+    "b1786100000012-test12": {
+      "id": "b1786100000012-test12",
+      "type": "recit",
+      "title": "Matelo · skate · Restaurant",
+      "text": "Matelo entre au Restaurant de la mer en skate, freine pile devant le comptoir. Omar s'arrache les cheveux devant un sac de noix. « Une heure que j'essaie, rien à faire ! » Matelo attrape une noix, la pose sur le marbre, et d'un coup de roue bien placé, l'écrase net. Puis une autre. Puis dix autres, en rythme, comme s'il enchaînait des figures. « EN AVANT ! » crie-t-il à chaque coup réussi. Les clients, d'abord agacés, commencent à compter les coques avec lui. Omar sort de sa cuisine, hilare. « Tu casses des noix comme tu roules ! » « Je casse tout comme je roule », répond Matelo en repartant, une roue encore pleine de poussière de coquille.",
+      "next": null
+    },
+    "b1786100000010-test10": {
+      "id": "b1786100000010-test10",
+      "type": "carrefour",
+      "title": "Où va Matelo (avec le skate) ?",
+      "question": "Où est-ce que ça se passe ?",
+      "options": [
+        {
+          "targetId": "b1786100000011-test11",
+          "label": "Le village de Poilou"
+        },
+        {
+          "targetId": "b1786100000012-test12",
+          "label": "Le restaurant de la mer"
+        }
+      ]
+    },
+    "b1786100000014-test14": {
+      "id": "b1786100000014-test14",
+      "type": "recit",
+      "title": "Matelo · pelle · Poilou",
+      "text": "Matelo arrive à Poilou, une pelle sur l'épaule — pas franchement pratique en montagne. Jean-Bernard désigne un vieux puits muré. « Ma médaille y est tombée. Onze ans qu'elle y dort. » Matelo ne réfléchit pas longtemps. Il plante sa pelle dans la terre autour du puits et creuse, vite, fort, en soufflant comme un forcené. « EN AVANT ! » En sortant du trou, il entend un air de jazz un peu faux — Papa, assis sur le muret, gratte sa guitare comme si de rien n'était. « Sympa le trou », dit-il, avant de repartir dans son accord. Matelo remonte, couvert de terre, la médaille brandie comme un trophée. « Fallait juste y aller », dit-il en tapant la terre de ses chaussures.",
+      "next": null
+    },
+    "b1786100000015-test15": {
+      "id": "b1786100000015-test15",
+      "type": "recit",
+      "title": "Matelo · pelle · Restaurant",
+      "text": "Au Restaurant de la mer, Matelo pose sa pelle contre le mur. Omar, dépassé, montre un tas de noix. « Impossible à ouvrir assez vite ! » Matelo prend la pelle par le manche, retourne le fer, et frappe les noix une à une contre le comptoir, avec le même geste que pour aplatir le sable. Coque après coque, le saladier se remplit. Un client, au fond, chronomètre en rigolant : « Douze secondes la noix ! » « EN AVANT ! » répond Matelo sans lever la tête. Quand tout est fini, Omar s'essuie le front. « Je t'engagerais bien. » « Une autre fois, j'ai des ricochets qui m'attendent », dit Matelo, sa pelle déjà sur l'épaule. Une pelle, décidément, ça ne sert pas qu'à la plage.",
+      "next": null
+    },
+    "b1786100000013-test13": {
+      "id": "b1786100000013-test13",
+      "type": "carrefour",
+      "title": "Où va Matelo (avec la pelle) ?",
+      "question": "Où est-ce que ça se passe ?",
+      "options": [
+        {
+          "targetId": "b1786100000014-test14",
+          "label": "Le village de Poilou"
+        },
+        {
+          "targetId": "b1786100000015-test15",
+          "label": "Le restaurant de la mer"
+        }
+      ]
+    },
+    "b1786100000009-test09": {
+      "id": "b1786100000009-test09",
+      "type": "carrefour",
+      "title": "Quel objet Matelo emporte-t-il/elle ?",
+      "question": "Quel objet on emporte ?",
+      "options": [
+        {
+          "targetId": "b1786100000010-test10",
+          "label": "Le skate"
+        },
+        {
+          "targetId": "b1786100000013-test13",
+          "label": "Une pelle"
+        }
+      ]
+    },
+    "b1786100000001-test01": {
+      "id": "b1786100000001-test01",
+      "type": "carrefour",
+      "title": "Qui part à l'aventure ?",
+      "question": "Ce soir, qui part ?",
+      "options": [
+        {
+          "targetId": "b1786100000002-test02",
+          "label": "Mélisande"
+        },
+        {
+          "targetId": "b1786100000009-test09",
+          "label": "Matelo"
+        }
+      ]
+    }
+  }
+}
