@@ -143,7 +143,7 @@ def google_tts(text, dst_path):
     synthesis_input = texttospeech.SynthesisInput(text=text)
     voice = texttospeech.VoiceSelectionParams(
         language_code="fr-FR",
-        name="fr-FR-Neural2-C",  # changez ici si ce nom de voix n'existe plus :
+        name="fr-FR-Neural2-A",  # changez ici si ce nom de voix n'existe plus :
         # liste à jour sur https://cloud.google.com/text-to-speech/docs/voices
     )
     audio_config = texttospeech.AudioConfig(
