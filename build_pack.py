@@ -132,64 +132,20 @@ def tts_fallback(text, dst_path, engine='espeak', passage_type='story'):
 
 def google_tts(text, dst_path, passage_type='story'):
     """
-    Google Cloud Text-to-Speech, optimisé pour la narration d'histoires enfants.
-
-    passage_type :
-      'story'    = récit (rythme conteur, légèrement plus lent, pauses marquées)
-      'question' = question de menu (ton clair, rythme normal)
-      'option'   = réponse de menu (clair, net, court)
-
-    Voix : fr-FR-Journey-D (masculin, narration naturelle, intonation expressive)
-    Variante féminine disponible : fr-FR-Journey-O
-
+    Google Cloud Text-to-Speech — version minimale validée.
+    Voix : fr-FR-Neural2-C (qualité Neural2, français, sans restrictions SSML).
+    Texte brut uniquement : pas de SSML pour éviter tout INVALID_ARGUMENT.
     Nécessite : pip install google-cloud-texttospeech
     Authentification : ADC (gcloud auth application-default login)
-    Note : voix Journey facturée au tarif Neural2 (~$16/million de caractères SSML compris)
     """
     from google.cloud import texttospeech
 
-    def to_ssml(text, ptype):
-        """
-        Seule balise garantie sur les voix Journey/génératives Google : <break>.
-        <prosody>, <emphasis>, <lang> sont refusés → INVALID_ARGUMENT.
-        Journey gère nativement l'intonation, les pauses aux ponctuations
-        améliorent la narration sans risque.
-        """
-        import html as ht
-        safe = ht.escape(text)
-        if ptype == 'story':
-            ssml = (
-                safe
-                .replace('. ', '.<break time="500ms"/> ')
-                .replace('! ', '!<break time="400ms"/> ')
-                .replace('? ', '?<break time="400ms"/> ')
-                .replace(', ', ',<break time="150ms"/> ')
-                .replace('...', '<break time="600ms"/> ')
-            )
-            return f'<speak>{ssml}</speak>'
-        else:
-            # Question et réponse de menu : texte brut, Journey suffit
-            return f'<speak>{safe}</speak>'
-
-    # Validation XML avant envoi (évite un aller-retour réseau si le SSML est malformé)
-    import xml.etree.ElementTree as ET
-    ssml_text = to_ssml(text, passage_type)
-    try:
-        ET.fromstring(ssml_text)
-    except ET.ParseError as e:
-        raise ValueError(f"SSML invalide pour le passage '{dst_path}': {e}\n---\n{ssml_text}") from e
-
     client = texttospeech.TextToSpeechClient()
-
-    synthesis_input = texttospeech.SynthesisInput(ssml=ssml_text)
+    synthesis_input = texttospeech.SynthesisInput(text=text)
     voice = texttospeech.VoiceSelectionParams(
         language_code="fr-FR",
-        name="fr-FR-Journey-D",
-        # Pour une voix féminine : fr-FR-Journey-O
+        name="fr-FR-Neural2-C",
     )
-    # Journey refuse speaking_rate et pitch dans AudioConfig même à leurs valeurs par défaut.
-    # Ne pas spécifier sample_rate_hertz : Google renvoie sa fréquence native,
-    # ffmpeg la reconvertira à 44100 Hz lors de l'encodage MP3 final.
     audio_config = texttospeech.AudioConfig(
         audio_encoding=texttospeech.AudioEncoding.MP3,
     )
