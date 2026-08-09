@@ -235,6 +235,10 @@ def cmd_build(args):
     audio_dir = os.path.join(args.dossier, 'audio')
     images_dir = os.path.join(args.dossier, 'images')
 
+    # Dossier avec les MP3 nommés de façon lisible (pour usage manuel si besoin)
+    lisible_dir = os.path.join(args.dossier, 'audio_lisible')
+    os.makedirs(lisible_dir, exist_ok=True)
+
     asset_for_slug = {}
     image_for_slug = {}
     missing = []
@@ -264,6 +268,8 @@ def cmd_build(args):
         sha1 = hashlib.sha1(data).hexdigest()
         fname = f'{sha1}.mp3'
         shutil.copy(out_mp3, f'{work}/assets/{fname}')
+        # Copie lisible avec le slug comme nom
+        shutil.copy(out_mp3, os.path.join(lisible_dir, slug + '.mp3'))
         os.remove(out_mp3)
         asset_for_slug[slug] = fname
 
