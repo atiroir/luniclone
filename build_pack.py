@@ -117,12 +117,12 @@ def ensure_image(src_path, dst_path):
     img = img.resize((320, 240))
     img.save(dst_path, format='PNG')
 
-def tts_fallback(text, dst_path, engine='espeak'):
+def tts_fallback(text, dst_path, engine='espeak', passage_type='story'):
     if engine == 'kokoro':
         kokoro_tts(text, dst_path)
         return
     if engine == 'google':
-        google_tts(text, dst_path)
+        google_tts(text, dst_path, passage_type=passage_type)
         return
     wav = dst_path + '.wav'
     subprocess.run(['espeak-ng', '-v', 'fr-fr', '-s', '160', '-w', wav, text], check=True,
@@ -130,25 +130,68 @@ def tts_fallback(text, dst_path, engine='espeak'):
     ensure_mp3(wav, dst_path)
     os.remove(wav)
 
-def google_tts(text, dst_path):
+def google_tts(text, dst_path, passage_type='story'):
     """
+    Google Cloud Text-to-Speech, optimisé pour la narration d'histoires enfants.
+
+    passage_type :
+      'story'    = récit (rythme conteur, légèrement plus lent, pauses marquées)
+      'question' = question de menu (ton clair, rythme normal)
+      'option'   = réponse de menu (clair, net, court)
+
+    Voix : fr-FR-Journey-D (masculin, narration naturelle, intonation expressive)
+    Variante féminine disponible : fr-FR-Journey-O
+
     Nécessite : pip install google-cloud-texttospeech
-    Authentification : variable d'environnement GOOGLE_APPLICATION_CREDENTIALS
-    pointant vers le fichier JSON de la clé de compte de service (voir notice).
-    NON TESTÉ ici (mon réseau ne peut pas atteindre googleapis.com) — code écrit
-    d'après la documentation officielle du client Python, à valider chez vous.
+    Authentification : ADC (gcloud auth application-default login)
+    Note : voix Journey facturée au tarif Neural2 (~$16/million de caractères SSML compris)
     """
     from google.cloud import texttospeech
+
+    def to_ssml(text, ptype):
+        import html as ht
+        safe = ht.escape(text)
+        if ptype == 'story':
+            # Rythme légèrement ralenti, pauses longues aux points et aux virgules
+            return (
+                '<speak>'
+                '<prosody rate="90%" pitch="0st">'
+                + safe
+                .replace('. ', '.<break time="600ms"/> ')
+                .replace('! ', '!<break time="500ms"/> ')
+                .replace('? ', '?<break time="500ms"/> ')
+                .replace(', ', ',<break time="200ms"/> ')
+                .replace('...', '<break time="700ms"/>...')
+                .replace('« ', '<break time="150ms"/>« ')
+                .replace(' »', ' »<break time="150ms"/>')
+                + '</prosody>'
+                '</speak>'
+            )
+        elif ptype == 'question':
+            # Ton légèrement montant sur la fin (comme une vraie question orale)
+            return (
+                '<speak>'
+                '<prosody rate="95%">'
+                + safe
+                + '</prosody>'
+                '</speak>'
+            )
+        else:  # option
+            # Court et net, sans fioriture
+            return f'<speak><prosody rate="100%">{safe}</prosody></speak>'
+
     client = texttospeech.TextToSpeechClient()
-    synthesis_input = texttospeech.SynthesisInput(text=text)
+    ssml_text = to_ssml(text, passage_type)
+
+    synthesis_input = texttospeech.SynthesisInput(ssml=ssml_text)
     voice = texttospeech.VoiceSelectionParams(
         language_code="fr-FR",
-        name="fr-FR-Neural2-A",  # changez ici si ce nom de voix n'existe plus :
-        # liste à jour sur https://cloud.google.com/text-to-speech/docs/voices
+        name="fr-FR-Journey-D",
+        # Pour une voix féminine : name="fr-FR-Journey-O"
     )
     audio_config = texttospeech.AudioConfig(
         audio_encoding=texttospeech.AudioEncoding.MP3,
-        sample_rate_hertz=44100
+        sample_rate_hertz=44100,
     )
     response = client.synthesize_speech(
         input=synthesis_input, voice=voice, audio_config=audio_config
@@ -207,7 +250,13 @@ def cmd_build(args):
         if mp3_src:
             ensure_mp3(mp3_src, out_mp3)
         elif args.tts:
-            tts_fallback(text, out_mp3, engine=args.tts)
+            if slug.startswith('recit_'):
+                ptype = 'story'
+            elif slug.startswith('question_'):
+                ptype = 'question'
+            else:
+                ptype = 'option'
+            tts_fallback(text, out_mp3, engine=args.tts, passage_type=ptype)
         else:
             missing.append(slug)
             continue
@@ -252,7 +301,7 @@ def cmd_build(args):
             return {"actionNode": story_action(target_bid), "optionIndex": 0}
         return {"actionNode": q_action(target_bid), "optionIndex": 0}
 
-    first_useful = wrap_target(root_id)
+    first_useful = {"actionNode": q_action(root_id), "optionIndex": 0}
     stage_nodes, action_nodes = [], []
 
     for bid, b in blocks.items():
