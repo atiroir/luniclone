@@ -149,36 +149,35 @@ def google_tts(text, dst_path, passage_type='story'):
     from google.cloud import texttospeech
 
     def to_ssml(text, ptype):
+        """
+        Seule balise garantie sur les voix Journey/génératives Google : <break>.
+        <prosody>, <emphasis>, <lang> sont refusés → INVALID_ARGUMENT.
+        Journey gère nativement l'intonation, les pauses aux ponctuations
+        améliorent la narration sans risque.
+        """
         import html as ht
         safe = ht.escape(text)
         if ptype == 'story':
-            # Rythme légèrement ralenti, pauses longues aux points et aux virgules
-            return (
-                '<speak>'
-                '<prosody rate="90%" pitch="0st">'
-                + safe
-                .replace('. ', '.<break time="600ms"/> ')
-                .replace('! ', '!<break time="500ms"/> ')
-                .replace('? ', '?<break time="500ms"/> ')
-                .replace(', ', ',<break time="200ms"/> ')
-                .replace('...', '<break time="700ms"/>...')
-                .replace('« ', '<break time="150ms"/>« ')
-                .replace(' »', ' »<break time="150ms"/>')
-                + '</prosody>'
-                '</speak>'
+            ssml = (
+                safe
+                .replace('. ', '.<break time="500ms"/> ')
+                .replace('! ', '!<break time="400ms"/> ')
+                .replace('? ', '?<break time="400ms"/> ')
+                .replace(', ', ',<break time="150ms"/> ')
+                .replace('...', '<break time="600ms"/> ')
             )
-        elif ptype == 'question':
-            # Ton légèrement montant sur la fin (comme une vraie question orale)
-            return (
-                '<speak>'
-                '<prosody rate="95%">'
-                + safe
-                + '</prosody>'
-                '</speak>'
-            )
-        else:  # option
-            # Court et net, sans fioriture
-            return f'<speak><prosody rate="100%">{safe}</prosody></speak>'
+            return f'<speak>{ssml}</speak>'
+        else:
+            # Question et réponse de menu : texte brut, Journey suffit
+            return f'<speak>{safe}</speak>'
+
+    # Validation XML avant envoi (évite un aller-retour réseau si le SSML est malformé)
+    import xml.etree.ElementTree as ET
+    ssml_text = to_ssml(text, passage_type)
+    try:
+        ET.fromstring(ssml_text)
+    except ET.ParseError as e:
+        raise ValueError(f"SSML invalide pour le passage '{dst_path}': {e}\n---\n{ssml_text}") from e
 
     client = texttospeech.TextToSpeechClient()
     ssml_text = to_ssml(text, passage_type)
@@ -375,9 +374,22 @@ def cmd_build(args):
         for fname in os.listdir(f'{work}/assets'):
             zf.write(f'{work}/assets/{fname}', f'assets/{fname}')
 
+    # Fichier de correspondances lisible → SHA1
+    correspondances_path = os.path.join(args.dossier, 'correspondances.txt')
+    with open(correspondances_path, 'w', encoding='utf-8') as f:
+        f.write("Correspondances nom lisible → nom SHA1 dans le zip\n")
+        f.write("=" * 60 + "\n\n")
+        for slug, fname in sorted(asset_for_slug.items()):
+            _, (text, desc) = next((k, v) for k, v in needed_audios(blocks).items() if k == slug)
+            f.write(f"{slug}.mp3\n")
+            f.write(f"  Description : {desc}\n")
+            f.write(f"  Dans le zip : assets/{fname}\n\n")
+
     shutil.rmtree(work)
     print(f"Pack créé : {args.sortie}")
     print(f"  {len(stage_nodes)} scènes, {len(action_nodes)} actions")
+    print(f"  MP3 lisibles : {os.path.join(args.dossier, 'audio_lisible/')}")
+    print(f"  Correspondances : {correspondances_path}")
 
 # ---------- feuille de lecture continue ----------
 
