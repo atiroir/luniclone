@@ -180,17 +180,18 @@ def google_tts(text, dst_path, passage_type='story'):
         raise ValueError(f"SSML invalide pour le passage '{dst_path}': {e}\n---\n{ssml_text}") from e
 
     client = texttospeech.TextToSpeechClient()
-    ssml_text = to_ssml(text, passage_type)
 
     synthesis_input = texttospeech.SynthesisInput(ssml=ssml_text)
     voice = texttospeech.VoiceSelectionParams(
         language_code="fr-FR",
         name="fr-FR-Journey-D",
-        # Pour une voix féminine : name="fr-FR-Journey-O"
+        # Pour une voix féminine : fr-FR-Journey-O
     )
+    # Journey refuse speaking_rate et pitch dans AudioConfig même à leurs valeurs par défaut.
+    # Ne pas spécifier sample_rate_hertz : Google renvoie sa fréquence native,
+    # ffmpeg la reconvertira à 44100 Hz lors de l'encodage MP3 final.
     audio_config = texttospeech.AudioConfig(
         audio_encoding=texttospeech.AudioEncoding.MP3,
-        sample_rate_hertz=44100,
     )
     response = client.synthesize_speech(
         input=synthesis_input, voice=voice, audio_config=audio_config
