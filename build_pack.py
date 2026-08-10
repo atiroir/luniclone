@@ -320,14 +320,50 @@ def cmd_build(args):
     with open(f'{work}/story.json', 'w', encoding='utf-8') as f:
         json.dump(story, f, ensure_ascii=False, indent=2)
 
-    shutil.make_archive(args.sortie.replace('.zip',''), 'zip', work,
-                         base_dir='.')
-    # make_archive avec base_dir='.' zippe aussi le dossier _build_tmp lui-meme parfois selon la version;
-    # on utilise directement zipfile pour être sûr du contenu exact.
+    # Générer thumbnail.png (320x240) — requis pour que le pack apparaisse
+    # dans l'interface physique de la Lunii. Sans lui, le pack se transfère
+    # mais n'est pas visible dans le menu de l'appareil.
+    thumbnail_path = f'{work}/thumbnail.png'
+    user_thumbnail = os.path.join(args.dossier, 'thumbnail.png')
+    if os.path.exists(user_thumbnail):
+        # L'utilisateur a fourni son propre thumbnail : on le redimensionne
+        from PIL import Image as PILImage
+        img = PILImage.open(user_thumbnail).convert('RGB').resize((320, 240))
+        img.save(thumbnail_path, 'PNG')
+    else:
+        # Thumbnail généré automatiquement : titre centré sur fond sombre
+        try:
+            from PIL import Image as PILImage, ImageDraw, ImageFont
+            img = PILImage.new('RGB', (320, 240), color=(30, 30, 50))
+            draw = ImageDraw.Draw(img)
+            title = (args.titre or 'Mon histoire')[:30]
+            try:
+                font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 28)
+            except Exception:
+                font = ImageFont.load_default()
+            w = draw.textlength(title, font=font)
+            draw.text(((320 - w) / 2, 100), title, font=font, fill=(255, 255, 255))
+            img.save(thumbnail_path, 'PNG')
+        except Exception:
+            # Pillow absent : thumbnail blanc minimal
+            import struct, zlib
+            def png_chunk(name, data):
+                c = zlib.crc32(name + data) & 0xffffffff
+                return struct.pack('>I', len(data)) + name + data + struct.pack('>I', c)
+            w, h = 320, 240
+            raw = b''.join(b'\x00' + b'\xff' * (w * 3) for _ in range(h))
+            idat = zlib.compress(raw)
+            png = (b'\x89PNG\r\n\x1a\n'
+                   + png_chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0))
+                   + png_chunk(b'IDAT', idat)
+                   + png_chunk(b'IEND', b''))
+            with open(thumbnail_path, 'wb') as tf: tf.write(png)
+
     if os.path.exists(args.sortie): os.remove(args.sortie)
     import zipfile
     with zipfile.ZipFile(args.sortie, 'w', zipfile.ZIP_DEFLATED) as zf:
         zf.write(f'{work}/story.json', 'story.json')
+        zf.write(thumbnail_path, 'thumbnail.png')
         for fname in os.listdir(f'{work}/assets'):
             zf.write(f'{work}/assets/{fname}', f'assets/{fname}')
 
