@@ -48,9 +48,10 @@ def load_arborescence(path):
 
 # ---------- inventaire des audios nécessaires ----------
 
-def needed_audios(blocks):
+def needed_audios(blocks, titre='Mon histoire'):
     """Retourne une liste de (slug, texte_a_dire, description) pour chaque audio requis."""
     items = []
+    items.append(('couverture_titre', titre, "Titre du pack (écran d'accueil de la Lunii)"))
     for bid, b in blocks.items():
         if b['type'] == 'recit':
             items.append((f"recit_{slugify(b['title'])}_{bid[-6:]}", b['text'],
@@ -71,7 +72,7 @@ def needed_audios(blocks):
 
 def cmd_kit(args):
     blocks, root = load_arborescence(args.arborescence)
-    audios = needed_audios(blocks)
+    audios = needed_audios(blocks, args.titre)
     out_audio = os.path.join(args.dossier, 'audio')
     out_images = os.path.join(args.dossier, 'images')
     os.makedirs(out_audio, exist_ok=True)
@@ -124,11 +125,61 @@ def tts_fallback(text, dst_path, engine='espeak', passage_type='story'):
     if engine == 'google':
         google_tts(text, dst_path, passage_type=passage_type)
         return
+    if engine == 'elevenlabs':
+        elevenlabs_tts(text, dst_path)
+        return
     wav = dst_path + '.wav'
     subprocess.run(['espeak-ng', '-v', 'fr-fr', '-s', '160', '-w', wav, text], check=True,
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     ensure_mp3(wav, dst_path)
     os.remove(wav)
+
+def elevenlabs_tts(text, dst_path):
+    """
+    ElevenLabs Text-to-Speech (voix très expressive, payante après un petit
+    palier gratuit). NON TESTÉ ici (elevenlabs.io hors de portée de mon
+    réseau) — code écrit d'après la documentation officielle du SDK Python
+    actuel (client.text_to_speech.convert, pas l'ancienne API generate()/play()
+    qu'on trouve encore dans certains exemples obsolètes).
+
+    Nécessite : pip install elevenlabs
+    Configuration (variables d'environnement) :
+      ELEVENLABS_API_KEY   (obligatoire)
+      ELEVENLABS_VOICE_ID  (optionnel, sinon voix par défaut ci-dessous)
+    """
+    from elevenlabs.client import ElevenLabs
+
+    api_key = os.environ.get('ELEVENLABS_API_KEY')
+    if not api_key:
+        raise RuntimeError(
+            "Variable d'environnement ELEVENLABS_API_KEY manquante. "
+            "Récupérez votre clé sur elevenlabs.io -> Profil -> API Key."
+        )
+    voice_id = os.environ.get('ELEVENLABS_VOICE_ID', 'JBFqnCBsd6RMkjVDRZzb')
+
+    client = ElevenLabs(api_key=api_key)
+    audio = client.text_to_speech.convert(
+        voice_id=voice_id,
+        text=text,
+        model_id='eleven_multilingual_v2',
+        language_code='fr',
+        output_format='mp3_44100_128',
+    )
+    raw_mp3 = dst_path + '.raw.mp3'
+    with open(raw_mp3, 'wb') as f:
+        # La doc officielle (elevenlabs.io/docs/eleven-api/quickstart) ne précise pas
+        # si .convert() renvoie un bloc bytes unique ou un générateur de morceaux —
+        # elle passe juste le résultat à play() sans jamais l'inspecter. On gère les
+        # deux cas plutôt que de supposer l'un ou l'autre.
+        if isinstance(audio, (bytes, bytearray)):
+            f.write(audio)
+        else:
+            for chunk in audio:
+                if chunk:
+                    f.write(chunk)
+    # Renormalisation (mono/44100Hz garantis) par cohérence avec les autres moteurs
+    ensure_mp3(raw_mp3, dst_path)
+    os.remove(raw_mp3)
 
 def google_tts(text, dst_path, passage_type='story'):
     """
@@ -182,7 +233,8 @@ def kokoro_tts(text, dst_path):
 
 def cmd_build(args):
     blocks, root_id = load_arborescence(args.arborescence)
-    audios = needed_audios(blocks)
+    titre = args.titre or 'Mon histoire'
+    audios = needed_audios(blocks, titre)
 
     work = os.path.join(args.dossier, '_build_tmp')
     if os.path.exists(work): shutil.rmtree(work)
@@ -249,7 +301,50 @@ def cmd_build(args):
         for m in missing: print("  -", m + '.mp3')
         sys.exit(1)
 
-    # ---- construction de story.json (structure Story/Menu de STUdio) ----
+    # Générer thumbnail.png (320x240) — requis pour que le pack apparaisse
+    # dans la liste des packs de la Lunii. Généré AVANT story.json car le
+    # nœud "cover" a besoin de le référencer comme asset.
+    thumbnail_path = f'{work}/thumbnail.png'
+    user_thumbnail = os.path.join(args.dossier, 'thumbnail.png')
+    if os.path.exists(user_thumbnail):
+        from PIL import Image as PILImage
+        img = PILImage.open(user_thumbnail).convert('RGB').resize((320, 240))
+        img.save(thumbnail_path, 'PNG')
+    else:
+        try:
+            from PIL import Image as PILImage, ImageDraw, ImageFont
+            img = PILImage.new('RGB', (320, 240), color=(30, 30, 50))
+            draw = ImageDraw.Draw(img)
+            title_short = titre[:30]
+            try:
+                font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 28)
+            except Exception:
+                font = ImageFont.load_default()
+            w = draw.textlength(title_short, font=font)
+            draw.text(((320 - w) / 2, 100), title_short, font=font, fill=(255, 255, 255))
+            img.save(thumbnail_path, 'PNG')
+        except Exception:
+            import struct, zlib
+            def png_chunk(name, data):
+                c = zlib.crc32(name + data) & 0xffffffff
+                return struct.pack('>I', len(data)) + name + data + struct.pack('>I', c)
+            w, h = 320, 240
+            raw = b''.join(b'\x00' + b'\xff' * (w * 3) for _ in range(h))
+            idat = zlib.compress(raw)
+            png = (b'\x89PNG\r\n\x1a\n'
+                   + png_chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0))
+                   + png_chunk(b'IDAT', idat)
+                   + png_chunk(b'IEND', b''))
+            with open(thumbnail_path, 'wb') as tf: tf.write(png)
+
+    # Copie du thumbnail dans assets/ (sous son propre hash) pour que le
+    # nœud cover puisse le référencer comme image.
+    with open(thumbnail_path, 'rb') as f: _thumb_data = f.read()
+    _thumb_sha1 = hashlib.sha1(_thumb_data).hexdigest()
+    cover_image_asset = f'{_thumb_sha1}.png'
+    shutil.copy(thumbnail_path, f'{work}/assets/{cover_image_asset}')
+
+    # ---- construction de story.json (structure Cover/Story/Menu de STUdio) ----
     base_uuid = {bid: str(uuid.uuid4()) for bid in blocks}
     def q_action(bid):    return alter_uuid(base_uuid[bid], "111111111111")
     def q_stage(bid):     return alter_uuid(base_uuid[bid], "222222222222")
@@ -266,6 +361,21 @@ def cmd_build(args):
     first_useful = {"actionNode": q_action(root_id), "optionIndex": 0}
     stage_nodes, action_nodes = [], []
 
+    # Nœud "cover" : l'écran d'accueil du pack, distinct du carrefour racine.
+    # C'est LUI le vrai squareOne — sans lui, la Lunii ne présente pas
+    # correctement le pack dans son menu de sélection.
+    cover_uuid = str(uuid.uuid4())
+    stage_nodes.append({
+        "uuid": cover_uuid, "type": "cover", "groupId": cover_uuid,
+        "name": "Couverture", "position": None,
+        "image": cover_image_asset,
+        "audio": asset_for_slug.get('couverture_titre'),
+        "okTransition": first_useful,
+        "homeTransition": None,
+        "controlSettings": {"wheel": True, "ok": True, "home": False, "pause": False, "autoplay": False},
+        "squareOne": True
+    })
+
     for bid, b in blocks.items():
         if b['type'] == 'recit':
             slug = f"recit_{slugify(b['title'])}_{bid[-6:]}"
@@ -276,7 +386,6 @@ def cmd_build(args):
                 "okTransition": wrap_target(b['next']) if b.get('next') else first_useful,
                 "homeTransition": first_useful,
                 "controlSettings": {"wheel": False, "ok": False, "home": True, "pause": True, "autoplay": True},
-                **({"squareOne": True} if bid == root_id else {})
             })
             action_nodes.append({"id": story_action(bid), "type": "story.storyaction",
                                   "groupId": base_uuid[bid], "name": b['title']+".storyaction",
@@ -290,7 +399,6 @@ def cmd_build(args):
                 "okTransition": {"actionNode": opts_action(bid), "optionIndex": 0},
                 "homeTransition": None,
                 "controlSettings": {"wheel": False, "ok": False, "home": False, "pause": False, "autoplay": True},
-                **({"squareOne": True} if bid == root_id else {})
             })
             action_nodes.append({"id": q_action(bid), "type": "menu.questionaction",
                                   "groupId": base_uuid[bid], "name": b['title']+".questionaction",
@@ -313,51 +421,12 @@ def cmd_build(args):
                                   "options": option_uuids})
 
     stage_nodes.sort(key=lambda n: 0 if n.get('squareOne') else 1)
-    story = {"format": "v1", "title": args.titre or "Mon histoire",
+    story = {"format": "v1", "title": titre,
              "description": "Pack genere par build_pack.py",
              "version": 1, "nightModeAvailable": False,
              "stageNodes": stage_nodes, "actionNodes": action_nodes}
     with open(f'{work}/story.json', 'w', encoding='utf-8') as f:
         json.dump(story, f, ensure_ascii=False, indent=2)
-
-    # Générer thumbnail.png (320x240) — requis pour que le pack apparaisse
-    # dans l'interface physique de la Lunii. Sans lui, le pack se transfère
-    # mais n'est pas visible dans le menu de l'appareil.
-    thumbnail_path = f'{work}/thumbnail.png'
-    user_thumbnail = os.path.join(args.dossier, 'thumbnail.png')
-    if os.path.exists(user_thumbnail):
-        # L'utilisateur a fourni son propre thumbnail : on le redimensionne
-        from PIL import Image as PILImage
-        img = PILImage.open(user_thumbnail).convert('RGB').resize((320, 240))
-        img.save(thumbnail_path, 'PNG')
-    else:
-        # Thumbnail généré automatiquement : titre centré sur fond sombre
-        try:
-            from PIL import Image as PILImage, ImageDraw, ImageFont
-            img = PILImage.new('RGB', (320, 240), color=(30, 30, 50))
-            draw = ImageDraw.Draw(img)
-            title = (args.titre or 'Mon histoire')[:30]
-            try:
-                font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 28)
-            except Exception:
-                font = ImageFont.load_default()
-            w = draw.textlength(title, font=font)
-            draw.text(((320 - w) / 2, 100), title, font=font, fill=(255, 255, 255))
-            img.save(thumbnail_path, 'PNG')
-        except Exception:
-            # Pillow absent : thumbnail blanc minimal
-            import struct, zlib
-            def png_chunk(name, data):
-                c = zlib.crc32(name + data) & 0xffffffff
-                return struct.pack('>I', len(data)) + name + data + struct.pack('>I', c)
-            w, h = 320, 240
-            raw = b''.join(b'\x00' + b'\xff' * (w * 3) for _ in range(h))
-            idat = zlib.compress(raw)
-            png = (b'\x89PNG\r\n\x1a\n'
-                   + png_chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0))
-                   + png_chunk(b'IDAT', idat)
-                   + png_chunk(b'IEND', b''))
-            with open(thumbnail_path, 'wb') as tf: tf.write(png)
 
     if os.path.exists(args.sortie): os.remove(args.sortie)
     import zipfile
@@ -373,7 +442,7 @@ def cmd_build(args):
         f.write("Correspondances nom lisible → nom SHA1 dans le zip\n")
         f.write("=" * 60 + "\n\n")
         for slug, fname in sorted(asset_for_slug.items()):
-            _, (text, desc) = next((k, v) for k, v in needed_audios(blocks).items() if k == slug)
+            _, (text, desc) = next((k, v) for k, v in needed_audios(blocks, titre).items() if k == slug)
             f.write(f"{slug}.mp3\n")
             f.write(f"  Description : {desc}\n")
             f.write(f"  Dans le zip : assets/{fname}\n\n")
@@ -420,6 +489,13 @@ def cmd_script(args):
     lines.append("(sans le lire à voix haute, bien sûr). Puis lisez le texte normalement.")
     lines.append("")
     lines.append("=" * 70)
+    lines.append("")
+
+    lines.append("--- ÉTIQUETTE : couverture_titre ---")
+    lines.append("[Titre du pack, annoncé à l'écran d'accueil de la Lunii]")
+    lines.append("")
+    lines.append(args.titre)
+    lines.append("")
     lines.append("")
 
     written_slugs = set()
@@ -471,23 +547,27 @@ sub = parser.add_subparsers(dest='cmd', required=True)
 p_kit = sub.add_parser('kit', help="Génère la liste des audios à enregistrer")
 p_kit.add_argument('arborescence')
 p_kit.add_argument('dossier')
+p_kit.add_argument('--titre', default='Mon histoire')
 p_kit.set_defaults(func=cmd_kit)
 
 p_build = sub.add_parser('build', help="Construit le pack final")
 p_build.add_argument('arborescence')
 p_build.add_argument('dossier')
 p_build.add_argument('sortie')
-p_build.add_argument('--tts', choices=['espeak', 'kokoro', 'google'], default=None,
+p_build.add_argument('--tts', choices=['espeak', 'kokoro', 'google', 'elevenlabs'], default=None,
                       help="Génère automatiquement les audios manquants : "
                            "'espeak' (robotique, rapide), "
                            "'kokoro' (local, gratuit, nécessite pip install kokoro soundfile torch), "
-                           "'google' (Google Cloud TTS, bonne qualité, nécessite un compte + clé)")
+                           "'google' (Google Cloud TTS, bonne qualité, nécessite un compte + clé), "
+                           "'elevenlabs' (très expressif, payant après un petit palier gratuit, "
+                           "nécessite pip install elevenlabs + variable ELEVENLABS_API_KEY)")
 p_build.add_argument('--titre', default=None)
 p_build.set_defaults(func=cmd_build)
 
 p_script = sub.add_parser('script', help="Génère une feuille de lecture unique, pour enregistrer d'une traite")
 p_script.add_argument('arborescence')
 p_script.add_argument('sortie')
+p_script.add_argument('--titre', default='Mon histoire')
 p_script.set_defaults(func=cmd_script)
 
 if __name__ == '__main__':
