@@ -358,7 +358,7 @@ def cmd_build(args):
             return {"actionNode": story_action(target_bid), "optionIndex": 0}
         return {"actionNode": q_action(target_bid), "optionIndex": 0}
 
-    first_useful = {"actionNode": q_action(root_id), "optionIndex": 0}
+    first_useful = wrap_target(root_id)
     stage_nodes, action_nodes = [], []
 
     # Nœud "cover" : l'écran d'accueil du pack, distinct du carrefour racine.
