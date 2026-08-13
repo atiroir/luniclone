@@ -379,12 +379,19 @@ def cmd_build(args):
     for bid, b in blocks.items():
         if b['type'] == 'recit':
             slug = f"recit_{slugify(b['title'])}_{bid[-6:]}"
+            has_next = bool(b.get('next'))
+            has_menu = any(blk['type'] == 'carrefour' for blk in blocks.values())
             stage_nodes.append({
                 "uuid": base_uuid[bid], "type": "story", "groupId": base_uuid[bid],
                 "name": b['title'], "position": None,
                 "image": image_for_slug.get(slug), "audio": asset_for_slug[slug],
-                "okTransition": wrap_target(b['next']) if b.get('next') else first_useful,
-                "homeTransition": first_useful,
+                # Quand le récit se termine (ok) : passer au suivant si existe,
+                # sinon revenir au menu de l'histoire si il y en a un,
+                # sinon null (= retour à la sélection des packs, comportement Lunii natif)
+                "okTransition": wrap_target(b['next']) if has_next else (first_useful if has_menu else None),
+                # home: null = retour à la sélection des packs (comportement natif Lunii)
+                # home: first_useful = retour au menu de l'histoire (si il y en a un)
+                "homeTransition": first_useful if has_menu else None,
                 "controlSettings": {"wheel": False, "ok": False, "home": True, "pause": True, "autoplay": True},
             })
             action_nodes.append({"id": story_action(bid), "type": "story.storyaction",
